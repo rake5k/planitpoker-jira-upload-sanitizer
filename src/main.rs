@@ -33,7 +33,7 @@ fn readfile(path : &Path) -> Rss {
     return quick_xml::de::from_reader(file).unwrap();
 }
 
-fn writefile(rss : Rss, source_file : &Path) -> Result<(), Box<dyn Error>> {
+fn write_csv(rss : Rss, source_file : &Path) -> Result<(), Box<dyn Error>> {
     let target_file_name = source_file.with_extension("safe.csv");
     let target_file = source_file.with_file_name(target_file_name);
 
@@ -52,6 +52,17 @@ fn make_anchor(text : &str, link : &str) -> String {
     format!("<a href='{}'>{}</a>", link, text)
 }
 
+fn write_xml(rss : Rss, source_file : &Path) -> Result<(), Box<dyn Error>> {
+    let target_file_name = source_file.with_extension("safe.xml");
+    let target_file = source_file.with_file_name(target_file_name);
+
+    println!("Writing {:?}...", target_file);
+
+    let file = BufWriter::new(File::create(target_file).unwrap());
+    quick_xml::se::to_writer(file, &rss).unwrap();
+    Ok(())
+}
+
 fn main() {
     let args: Vec<_> = std::env::args().collect();
 
@@ -65,6 +76,7 @@ fn main() {
     let rss : Rss = readfile(source_file);
     //println!("{:#?}", rss);
 
-    writefile(rss, source_file).unwrap();
+    write_csv(rss, source_file).unwrap();
+    //write_xml(rss, source_file).unwrap();
 }
 
