@@ -3,9 +3,15 @@ name = "planitpoker-jira-upload-sanitizer"
 version = "0.1.0"
 authors = ["Christian Harke <christian@harke.ch>"]
 edition = "2018"
+description = "Prevents you from uploading unnecessary data to planitpoker.org!"
+readme = "README.md"
+repository = "https://github.com/christianharke/planitpoker-jira-upload-sanitizer/"
+license-file = "LICENSE"
 
 [dependencies]
+clap = "3.0.0-beta.2"
 csv = "1.1"
+log = "0.4"
+simple_logger = "1.11"
 quick-xml = { version = "0.20.0", features = [ "serialize" ] }
 serde = { version = "1.0", features = [ "derive" ] }
-
