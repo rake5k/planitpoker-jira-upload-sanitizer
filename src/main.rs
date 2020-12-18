@@ -24,8 +24,7 @@ struct Channel {
 #[derive(Deserialize, Serialize, Debug)]
 struct Item {
     title: String,
-    link: String,
-    status: String
+    link: String
 }
 
 fn readfile(path : &Path) -> Rss {
