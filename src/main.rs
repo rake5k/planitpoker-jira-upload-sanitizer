@@ -30,6 +30,11 @@ struct Item {
     link: String,
 }
 
+enum OutFormat {
+    CSV,
+    STDOUT,
+}
+
 fn init_logger(debug: bool) {
     let level = match debug {
         true => LevelFilter::Trace,
@@ -38,14 +43,13 @@ fn init_logger(debug: bool) {
     SimpleLogger::new().with_level(level).init().unwrap()
 }
 
-fn process_file(path: &Path, as_csv: bool) -> Result<()> {
+fn process_file(path: &Path, out_format: OutFormat) -> Result<()> {
     let rss: Rss = read_file(path)?;
     log::debug!("Parsed input file {:#?}:\n{:#?}", path, rss);
 
-    if as_csv {
-        write_file(rss, &get_out_file(path))
-    } else {
-        write_out(rss)
+    match out_format {
+        OutFormat::CSV => write_file(rss, &get_out_file(path)),
+        OutFormat::STDOUT => write_out(rss),
     }
 }
 
@@ -123,7 +127,14 @@ fn main() -> Result<()> {
     init_logger(matches.is_present("debug"));
 
     match matches.value_of("FILE") {
-        Some(f) => process_file(Path::new(f), matches.is_present("csv")),
+        Some(f) => {
+            let out_format = if matches.is_present("csv") {
+                OutFormat::CSV
+            } else {
+                OutFormat::STDOUT
+            };
+            process_file(Path::new(f), out_format)
+        }
         None => bail!("Missing file argument!"),
     }
 }
