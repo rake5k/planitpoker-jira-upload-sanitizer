@@ -8,10 +8,10 @@ to prevent upload of potential sensitive data to [PlanITpoker](https://www.plani
 This application takes a single argument: the XML file exported from JIRA to be sanitized:
 
 ```bash
-// Run directly from source
+# Run directly from source
 $ cargo run -- <file>
 
-// Build it for later use, you will then find the binary in the target directory
+# Build it for later use, you will then find the binary in the target directory
 $ cargo build [--release]
 ```
 

@@ -1,34 +1,33 @@
 #[macro_use]
 extern crate serde;
-extern crate quick_xml;
 extern crate clap;
+extern crate quick_xml;
 
-use clap::{Arg, app_from_crate};
+use clap::{app_from_crate, Arg};
 use csv::WriterBuilder;
-use simple_logger::SimpleLogger;
 use log::LevelFilter;
+use simple_logger::SimpleLogger;
 use std::error::Error;
 use std::fs::File;
-use std::io::BufReader;
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 
 #[derive(Deserialize, Serialize, Debug)]
-#[serde(rename="rss")]
+#[serde(rename = "rss")]
 struct Rss {
-    channel: Channel
+    channel: Channel,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Channel {
-    #[serde(rename="item")]
-    items: Vec<Item>
+    #[serde(rename = "item")]
+    items: Vec<Item>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct Item {
     title: String,
-    link: String
+    link: String,
 }
 
 fn init_logger(debug: bool) {
@@ -39,7 +38,7 @@ fn init_logger(debug: bool) {
     SimpleLogger::new().with_level(level).init().unwrap()
 }
 
-fn read_file(path : &Path) -> Rss {
+fn read_file(path: &Path) -> Rss {
     let file = BufReader::new(File::open(path).unwrap());
     return quick_xml::de::from_reader(file).unwrap();
 }
@@ -49,12 +48,10 @@ fn get_out_file(file: &Path) -> PathBuf {
     file.with_file_name(out_file_name)
 }
 
-fn write_file(rss : Rss, file : &Path) -> Result<(), Box<dyn Error>> {
+fn write_file(rss: Rss, file: &Path) -> Result<(), Box<dyn Error>> {
     eprint!("Writing {:?}...", file);
     let file = BufWriter::new(File::create(file).unwrap());
-    let mut wtr = WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(file);
+    let mut wtr = WriterBuilder::new().has_headers(false).from_writer(file);
     for item in rss.channel.items {
         wtr.serialize(make_anchor(&item.title, &item.link))?;
     }
@@ -62,11 +59,11 @@ fn write_file(rss : Rss, file : &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn make_anchor(text : &str, link : &str) -> String {
+fn make_anchor(text: &str, link: &str) -> String {
     format!("<a href='{}'>{}</a>", link, text)
 }
 
-fn write_out(rss : Rss) -> Result<(), Box<dyn Error>> {
+fn write_out(rss: Rss) -> Result<(), Box<dyn Error>> {
     eprintln!("[ID] TITLE, LINK");
     eprintln!("----------------");
     for item in rss.channel.items {
@@ -75,7 +72,7 @@ fn write_out(rss : Rss) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn remove_commas(text : &str) -> String {
+fn remove_commas(text: &str) -> String {
     text.replace(',', "")
 }
 
@@ -85,23 +82,29 @@ fn cut_comma(text: &str) -> &str {
 
 fn main() {
     let matches = app_from_crate!()
-        .arg(Arg::new("FILE")
-            .about("Input file to use")
-            .required(true)
-            .index(1))
-        .arg(Arg::new("csv")
-            .long("csv")
-            .about("Output to csv file next to the input file"))
-        .arg(Arg::new("debug")
-            .short('d')
-            .long("debug")
-            .about("Enable debug output"))
-       .get_matches();
+        .arg(
+            Arg::new("FILE")
+                .about("Input file to use")
+                .required(true)
+                .index(1),
+        )
+        .arg(
+            Arg::new("csv")
+                .long("csv")
+                .about("Output to csv file next to the input file"),
+        )
+        .arg(
+            Arg::new("debug")
+                .short('d')
+                .long("debug")
+                .about("Enable debug output"),
+        )
+        .get_matches();
 
     init_logger(matches.is_present("debug"));
 
     let file = Path::new(matches.value_of("FILE").unwrap());
-    let rss : Rss = read_file(file);
+    let rss: Rss = read_file(file);
     log::debug!("Parsed input file {:#?}:\n{:#?}", file, rss);
 
     if matches.is_present("csv") {
