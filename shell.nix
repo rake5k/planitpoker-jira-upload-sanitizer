@@ -15,6 +15,7 @@ nixpkgs.mkShell {
     figlet lolcat # banner printing on enter
 
     latest.rustChannels.nightly.rust
+    latest.rustChannels.nightly.rust-src
   ];
 
   shellHook = ''
