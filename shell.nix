@@ -14,7 +14,7 @@ nixpkgs.mkShell {
   buildInputs = with nixpkgs; [
     figlet lolcat # banner printing on enter
 
-    latest.rustChannels.stable.rust
+    latest.rustChannels.nightly.rust
   ];
 
   shellHook = ''
