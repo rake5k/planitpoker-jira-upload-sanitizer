@@ -3,108 +3,25 @@ extern crate serde;
 extern crate clap;
 extern crate quick_xml;
 
+mod csv_writer;
+mod jira_export_struct;
+mod out_writer;
+mod xml_reader;
+
 use anyhow::{bail, Result};
-use clap::{app_from_crate, Arg};
-use csv::WriterBuilder;
+use clap::{app_from_crate, Arg, ArgMatches};
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use std::fs::File;
-use std::io::{BufReader, BufWriter};
-use std::path::{Path, PathBuf};
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename = "rss")]
-struct Rss {
-    channel: Channel,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Channel {
-    #[serde(rename = "item")]
-    items: Vec<Item>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Item {
-    title: String,
-    link: String,
-}
+use std::path::Path;
+use jira_export_struct::Rss;
 
 enum OutFormat {
     CSV,
     STDOUT,
 }
 
-fn init_logger(debug: bool) {
-    let level = match debug {
-        true => LevelFilter::Trace,
-        false => LevelFilter::Info,
-    };
-    SimpleLogger::new().with_level(level).init().unwrap()
-}
-
-fn process_file(path: &Path, out_format: OutFormat) -> Result<()> {
-    let rss: Rss = read_file(path)?;
-    log::debug!("Parsed input file {:#?}:\n{:#?}", path, rss);
-
-    match out_format {
-        OutFormat::CSV => write_file(rss, &get_out_file(path)),
-        OutFormat::STDOUT => write_out(rss),
-    }
-}
-
-fn read_file(path: &Path) -> Result<Rss> {
-    match File::open(path) {
-        Ok(f) => Ok(quick_xml::de::from_reader(BufReader::new(f))?),
-        Err(_) => bail!("Cannot read file in path '{}'", path.display()),
-    }
-}
-
-fn get_out_file(path: &Path) -> PathBuf {
-    let out_file_name = path.with_extension("safe.csv");
-    path.with_file_name(out_file_name)
-}
-
-fn write_file(rss: Rss, path: &Path) -> Result<()> {
-    match File::create(path) {
-        Ok(f) => {
-            eprint!("Writing {:?}...", path);
-            let mut wtr = WriterBuilder::new()
-                .has_headers(false)
-                .from_writer(BufWriter::new(f));
-            for item in rss.channel.items {
-                wtr.serialize(make_anchor(&item.title, &item.link))?;
-            }
-            eprintln!(" done!");
-            Ok(())
-        }
-        Err(_) => bail!("Cannot write file in path '{}'", path.display()),
-    }
-}
-
-fn make_anchor(text: &str, link: &str) -> String {
-    format!("<a href='{}'>{}</a>", link, text)
-}
-
-fn write_out(rss: Rss) -> Result<()> {
-    eprintln!("[ID] TITLE, LINK");
-    eprintln!("----------------");
-    for item in rss.channel.items {
-        println!("{}, {}", remove_commas(&item.title), cut_comma(&item.link));
-    }
-    Ok(())
-}
-
-fn remove_commas(text: &str) -> String {
-    text.replace(',', "")
-}
-
-fn cut_comma(text: &str) -> &str {
-    text.split(',').nth(0).unwrap_or("-")
-}
-
-fn main() -> Result<()> {
-    let matches = app_from_crate!()
+fn get_args() -> ArgMatches {
+    app_from_crate!()
         .arg(
             Arg::new("FILE")
                 .about("Input file to use")
@@ -122,7 +39,29 @@ fn main() -> Result<()> {
                 .long("debug")
                 .about("Enable debug output"),
         )
-        .get_matches();
+        .get_matches()
+}
+
+fn init_logger(debug: bool) {
+    let level = match debug {
+        true => LevelFilter::Trace,
+        false => LevelFilter::Info,
+    };
+    SimpleLogger::new().with_level(level).init().unwrap()
+}
+
+fn process_file(input_file: &Path, out_format: OutFormat) -> Result<()> {
+    let rss: Rss = xml_reader::read_file(input_file)?;
+    log::debug!("Parsed input file {:#?}:\n{:#?}", input_file, rss);
+
+    match out_format {
+        OutFormat::CSV => csv_writer::write_file(rss, input_file),
+        OutFormat::STDOUT => out_writer::write_out(rss),
+    }
+}
+
+fn main() -> Result<()> {
+    let matches = get_args();
 
     init_logger(matches.is_present("debug"));
 
