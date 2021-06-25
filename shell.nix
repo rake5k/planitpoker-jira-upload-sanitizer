@@ -19,7 +19,7 @@ nixpkgs.mkShell {
   ];
 
   shellHook = ''
-    figlet $name | lolcat --freq 0.5
+    figlet -w 79 $name | lolcat --freq 0.5
   '';
 }
 
